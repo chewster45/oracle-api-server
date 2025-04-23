@@ -1,24 +1,19 @@
-
 // oracle-api-server.js
 const express = require('express');
 const OpenAI = require('openai');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-
 const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(bodyParser.json());
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
 
 app.post('/api/oracle-chat', async (req, res) => {
   const { question, userProfile } = req.body;
@@ -36,7 +31,7 @@ app.post('/api/oracle-chat', async (req, res) => {
   const prompt = `${systemPrompt}\n\nUser's chart:\n${userContext}\n\nQuestion: ${question}`;
 
   try {
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -45,7 +40,7 @@ app.post('/api/oracle-chat', async (req, res) => {
       temperature: 0.8,
     });
 
-    const answer = completion.data.choices[0].message.content;
+    const answer = completion.choices[0].message.content;
     res.json({ response: answer });
   } catch (error) {
     console.error('Oracle error:', error);
