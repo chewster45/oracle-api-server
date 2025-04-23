@@ -1,0 +1,55 @@
+
+// oracle-api-server.js
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { Configuration, OpenAIApi } from 'openai';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
+
+app.post('/api/oracle-chat', async (req, res) => {
+  const { question, userProfile } = req.body;
+
+  const systemPrompt = `You are a metaphysical guide. Use the user's chart data to give personalized spiritual advice. Be kind, clear, and precise.`;
+
+  const userContext = `
+    Sun Sign: ${userProfile.astrology.sun_sign}
+    Human Design: ${userProfile.human_design.type}, ${userProfile.human_design.authority}
+    Chinese Zodiac: ${userProfile.bazi.animal_sign}, Element: ${userProfile.bazi.day_master}
+    Numerology: Life Path ${userProfile.numerology.life_path}
+    Chakra: Heart is ${userProfile.chakra.heart}, Crown is ${userProfile.chakra.crown}
+  `;
+
+  const prompt = `${systemPrompt}\n\nUser's chart:\n${userContext}\n\nQuestion: ${question}`;
+
+  try {
+    const completion = await openai.createChatCompletion({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.8,
+    });
+
+    const answer = completion.data.choices[0].message.content;
+    res.json({ response: answer });
+  } catch (error) {
+    console.error('Oracle error:', error);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+app.listen(port, () => console.log(`🧙 Oracle API live at http://localhost:${port}`));
